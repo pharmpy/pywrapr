@@ -13,7 +13,7 @@ jobs:
         include:
           - python-version: '3.13'
             platform: 'ubuntu-24.04'
-            tox-env: 'unit'
+            tox-env: 'py313-unit'
 
     runs-on: ${{ matrix.platform }}
 
