@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pywrapr"
+version = "0.0.1"
+description = "R wrapper generator"
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    {name='Stella Belin', email='stella.belin@uu.se'},
+    {name='Rikard Nordgren', email='rikard.nordgren@uu.se'}
+]
+readme = { file = "README.rst", content-type = "text/x-rst" }
+requires-python = '>=3.11'
+dependencies = [
+    'pandas>=1.4',
+    'numpy>=1.17',
+]
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Developers',
+    'Operating System :: POSIX',
+    'Operating System :: MacOS',
+    'Operating System :: Unix',
+    'Operating System :: Microsoft :: Windows',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Topic :: Scientific/Engineering',
+]
+
+[project.urls]
+Issues = "https://github.com/pharmpy/pywrapr/issues"
+Repository = "https://github.com/pharmpy/pywrapr"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.black]
+line-length = 100
+skip-string-normalization = 1
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = "pywrapr"
+default_section = "THIRDPARTY"
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.pyright]
+reportUnnecessaryTypeIgnoreComment = true
+
+[tool.flake8]
+# Set to 120 instead of 100 because black sometimes creates longer lines
+max-line-length = 120
+extend-ignore = [
+    # See https://github.com/PyCQA/pycodestyle/issues/373
+    "E203",
+]
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--tb=short",
+]

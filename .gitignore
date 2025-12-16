@@ -1,0 +1,44 @@
+# Source code
+*.py[cod]
+*.swp
+
+# Packages
+build
+develop-eggs
+dist
+*.egg
+*.egg-info
+eggs
+.eggs
+.installed.cfg
+lib
+lib64
+parts
+pyvenv*/
+sdist
+var
+venv*/
+wheelhouse
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports / profile
+.pytest
+.pytest_cache/
+.tox
+/prof
+
+# Translations
+*.mo
+
+# Other
+.DS_Store
+*~
+*.bak
+.build
+.cache
+.env
+.*.sw[po]
+.ve
+Pipfile*

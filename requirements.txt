@@ -1,0 +1,4 @@
+numpy==2.3.5
+pandas==2.3.3
+sympy==1.14.0
+symengine==0.14.1
