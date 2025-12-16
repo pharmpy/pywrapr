@@ -7,6 +7,14 @@ from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 
 from pywrapr.help_functions import SKIP, TYPE_DICT, py_to_r_str
 
+RE_START = re.compile(r'>>> |^\.\.\. ')
+RE_METHODS = re.compile(r'([A-Za-z]\d*)\.([A-Za-z]\d*)')
+RE_LIST_IDX = re.compile(r'\w\[(\d+)]')
+RE_LIST = re.compile(r'\[([\'\"\w(),\s]+)]')
+RE_DICT = re.compile(r'\{(([\'\"]*[\w().]+[\'\"]*: [\'\"]*[\w.]+\'*,*\s*)+)}')
+RE_WS = re.compile(r'\s{2,}')
+RE_DOCTEST = re.compile(r'\s+# doctest:.*')
+
 
 def create_r_doc(func):
     doc = inspect.getdoc(func)
@@ -163,14 +171,6 @@ def _create_r_returns(doc_list):
 
 # FIXME: use from Pharmpy
 def _create_r_example(doc_list):
-    pattern_start = re.compile(r'>>> |^\.\.\. ')
-    pattern_methods = re.compile(r'([A-Za-z]\d*)\.([A-Za-z]\d*)')
-    pattern_list_idx = re.compile(r'\w\[(\d+)]')
-    pattern_list = re.compile(r'\[([\'\"\w(),\s]+)]')
-    pattern_dict = re.compile(r'\{(([\'\"]*[\w().]+[\'\"]*: [\'\"]*[\w.]+\'*,*\s*)+)}')
-    pattern_ws = re.compile(r'\s{2,}')
-    pattern_doctest = re.compile(r'\s+# doctest:.*')
-
     if any('pharmpy-execute::' in row for row in doc_list):
         doc_code = [row for row in doc_list if row and 'pharmpy-execute::' not in row]
     else:
@@ -181,47 +181,52 @@ def _create_r_example(doc_list):
 
     doc_code_r = ''
     for row in doc_code:
-        # Check for rows that starts with ... or >>>
-        row_r = re.sub(pattern_start, '', row)
-        row_r = py_to_r_str(row_r, example=True)
-        row_r = re.sub(' = ', ' <- ', row_r)
-
-        # Substitute any . to $, e.g. model.parameters -> model$parameters
-        row_r = re.sub(pattern_methods, r'\1$\2', row_r)
-
-        # Substitute """ or ''' to " for mutliline strings
-        row_r = re.sub(r'"""', r'"', row_r)
-        row_r = re.sub(r"'''", r'"', row_r)
-
-        # Check if row has list subscript
-        if re.search(r'\w\[', row_r):
-            idx = re.search(pattern_list_idx, row_r)
-            if idx:
-                # Increase idx by 1, e.g. list[0] -> list[1]
-                row_r = re.sub(idx.group(1), f'{int(idx.group(1)) + 1}', row_r)
-        else:
-            # Substitute any [] to c(), e.g. ['THETA(1)'] -> c('THETA(1)')
-            row_r = re.sub(pattern_list, r'c(\1)', row_r)
-
-        # Check if row contains python dict
-        dict_py = re.search(pattern_dict, row_r)
-        if dict_py:
-            # Substitute {} to list(), e.g. {'EONLY': 1} -> list('EONLY'=1)
-            dict_r = f'list({dict_py.group(1).replace(": ", "=", )})'
-            row_r = row_r.replace('{' + f'{dict_py.group(1)}' + '}', dict_r)
-
-        # Replace len() with length()
-        row_r = row_r.replace(r'len(', 'length(')
-
-        # Remove doctest comments
-        row_r = re.sub(pattern_doctest, '', row_r)
-
-        # Replace multiple spaces
-        row_r = re.sub(pattern_ws, ' ', row_r)
-
+        row_r = translate_python_row(row)
         doc_code_r += row_r + '\n'
 
     return '@examples\n\\dontrun{\n' + doc_code_r + '}'
+
+
+def translate_python_row(row):
+    # Check for rows that starts with ... or >>>
+    row_r = re.sub(RE_START, '', row)
+    row_r = py_to_r_str(row_r, example=True)
+    row_r = re.sub(' = ', ' <- ', row_r)
+
+    # Substitute any . to $, e.g. model.parameters -> model$parameters
+    row_r = re.sub(RE_METHODS, r'\1$\2', row_r)
+
+    # Substitute """ or ''' to " for mutliline strings
+    row_r = re.sub(r'"""', r'"', row_r)
+    row_r = re.sub(r"'''", r'"', row_r)
+
+    # Check if row has list subscript
+    if re.search(r'\w\[', row_r):
+        idx = re.search(RE_LIST_IDX, row_r)
+        if idx:
+            # Increase idx by 1, e.g. list[0] -> list[1]
+            row_r = re.sub(idx.group(1), f'{int(idx.group(1)) + 1}', row_r)
+    else:
+        # Substitute any [] to c(), e.g. ['THETA(1)'] -> c('THETA(1)')
+        row_r = re.sub(RE_LIST, r'c(\1)', row_r)
+
+    # Check if row contains python dict
+    dict_py = re.search(RE_DICT, row_r)
+    if dict_py:
+        # Substitute {} to list(), e.g. {'EONLY': 1} -> list('EONLY'=1)
+        dict_r = f'list({dict_py.group(1).replace(": ", "=", )})'
+        row_r = row_r.replace('{' + f'{dict_py.group(1)}' + '}', dict_r)
+
+    # Replace len() with length()
+    row_r = row_r.replace(r'len(', 'length(')
+
+    # Remove doctest comments
+    row_r = re.sub(RE_DOCTEST, '', row_r)
+
+    # Replace multiple spaces
+    row_r = re.sub(RE_WS, ' ', row_r)
+
+    return row_r
 
 
 def _split_doc_to_subtypes(doc_str):
