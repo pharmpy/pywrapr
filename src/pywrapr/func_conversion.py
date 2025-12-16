@@ -1,12 +1,12 @@
 import inspect
-import pandas as pd
-
 import re
 import textwrap
 from collections.abc import Iterable, Mapping, Sequence
 from typing import List, Union, get_args, get_origin, get_type_hints
 
-from pywrapr.help_functions import py_to_r_arg, SKIP
+import pandas as pd
+
+from pywrapr.help_functions import SKIP, py_to_r_arg
 
 
 def create_r_func(func, module):

@@ -1,7 +1,7 @@
 import inspect
 
-from pywrapr.func_conversion import create_r_func
 from pywrapr.docs_conversion import create_r_doc
+from pywrapr.func_conversion import create_r_func
 
 
 def create_module_functions(module):

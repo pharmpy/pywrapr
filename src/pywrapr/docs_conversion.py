@@ -1,12 +1,11 @@
 import inspect
 import re
 import warnings
-
+from collections.abc import Collection, Container, Iterable, Mapping, Sequence
 from types import UnionType
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
-from collections.abc import Collection, Container, Iterable, Mapping, Sequence
 
-from pywrapr.help_functions import py_to_r_str, SKIP, TYPE_DICT
+from pywrapr.help_functions import SKIP, TYPE_DICT, py_to_r_str
 
 
 def create_r_doc(func):
