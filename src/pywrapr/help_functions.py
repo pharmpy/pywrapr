@@ -26,12 +26,15 @@ def _is_pandas_obj(obj):
     return getattr(obj, '__module__', '').startswith('pandas')
 
 
+def belongs_to_package(obj, package_name):
+    if package_name:
+        return getattr(obj, '__module__', '').startswith(package_name)
+    else:
+        return False
+
+
 def skip_translation(obj, packages_to_skip):
     return _belongs_to_packages(obj, packages_to_skip) or obj is type(None)
-
-
-def belongs_to_package(obj, package_name):
-    return getattr(obj, '__module__', '').startswith(package_name)
 
 
 def _belongs_to_packages(obj, packages):
