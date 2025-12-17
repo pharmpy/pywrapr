@@ -5,7 +5,14 @@ from collections.abc import Collection, Container, Iterable, Mapping, Sequence
 from types import UnionType
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 
-from pywrapr.help_functions import SKIP, TYPE_DICT, py_to_r_str
+from pywrapr.help_functions import (
+    TYPE_DICT,
+    belongs_to_package,
+    is_pandas_dataframe,
+    is_pandas_series,
+    py_to_r_str,
+    skip_translation,
+)
 
 RE_START = re.compile(r'>>> |^\.\.\. ')
 RE_METHODS = re.compile(r'([A-Za-z]\d*)\.([A-Za-z]\d*)')
@@ -16,7 +23,7 @@ RE_WS = re.compile(r'\s{2,}')
 RE_DOCTEST = re.compile(r'\s+# doctest:.*')
 
 
-def create_r_doc(func):
+def create_r_doc(func, package_name, skip):
     doc = inspect.getdoc(func)
 
     if not doc:
@@ -41,7 +48,7 @@ def create_r_doc(func):
     )
 
     if 'params' in doc_dict.keys():
-        doc_str += _create_r_params(doc_dict['params'], func)
+        doc_str += _create_r_params(doc_dict['params'], func, package_name, skip)
     if 'returns' in doc_dict.keys():
         doc_str += _create_r_returns(doc_dict['returns']) + '\n\n'
     if 'examples' in doc_dict.keys():
@@ -61,7 +68,7 @@ def create_r_doc(func):
     return r_doc
 
 
-def _create_r_params(doc_list, func):
+def _create_r_params(doc_list, func, package_name, skip):
     type_hints = {key: value for key, value in get_type_hints(func).items() if key != 'return'}
 
     params = inspect.signature(func).parameters.values()
@@ -74,7 +81,7 @@ def _create_r_params(doc_list, func):
 
     if len(type_hints) == len(params) - len(params_unbound):
         try:
-            type_dict = _convert_types_from_typehints(type_hints)
+            type_dict = _convert_types_from_typehints(type_hints, package_name, skip)
         except ValueError as e:
             raise ValueError(f'{func.__name__}: {e}')
         if params_unbound:
@@ -99,11 +106,11 @@ def _create_r_params(doc_list, func):
     return r_params + ' \n'
 
 
-def _convert_types_from_typehints(type_hints):
+def _convert_types_from_typehints(type_hints, package_name, skip):
     type_dict = {}
     for var_name, var_type in type_hints.items():
         try:
-            r_type = _translate_type_hints(var_type)
+            r_type = _translate_type_hints(var_type, package_name, skip)
         except ValueError:
             raise
         if r_type == '':
@@ -113,10 +120,13 @@ def _convert_types_from_typehints(type_hints):
     return type_dict
 
 
-def _translate_type_hints(var_type):
+def _translate_type_hints(var_type, package_name, skip):
     if isinstance(var_type, type):
-        # Do not attempt to translate
-        if var_type.__module__.startswith('pharmpy'):
+        if is_pandas_dataframe(var_type):
+            return 'data.frame'
+        elif is_pandas_series(var_type):
+            return 'array'
+        elif belongs_to_package(var_type, package_name):
             return var_type.__name__
         elif var_type not in TYPE_DICT:
             raise ValueError(f'Could not translate type: {var_type}')
@@ -125,7 +135,11 @@ def _translate_type_hints(var_type):
         return 'any'
     else:
         args, origin = get_args(var_type), get_origin(var_type)
-        args_trans = [_translate_type_hints(arg) for arg in args if arg not in SKIP]
+        args_trans = [
+            _translate_type_hints(arg, package_name, skip)
+            for arg in args
+            if not skip_translation(arg, skip)
+        ]
         # If two args are translated to same type, for union only needs to be written once
         if origin is Union:
             args_trans = list(filter(None, dict.fromkeys(args_trans)))

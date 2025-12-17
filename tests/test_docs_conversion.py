@@ -81,7 +81,7 @@ from pywrapr.docs_conversion import create_r_doc
     ],
 )
 def test_create_r_doc(func, params_expected, return_expected, example_expected):
-    r_doc = create_r_doc(func)
+    r_doc = create_r_doc(func, package_name='pharmpy', skip=[])
     assert all(s.startswith('#\'') for s in r_doc.split('\n'))
     assert all(f'@param {param}' in r_doc for param in params_expected)
     assert f'@return ({return_expected})' in r_doc

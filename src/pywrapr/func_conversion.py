@@ -4,12 +4,15 @@ import textwrap
 from collections.abc import Iterable, Mapping, Sequence
 from typing import List, Union, get_args, get_origin, get_type_hints
 
-import pandas as pd
+from pywrapr.help_functions import (
+    is_pandas_dataframe,
+    is_pandas_series,
+    py_to_r_arg,
+    skip_translation,
+)
 
-from pywrapr.help_functions import SKIP, py_to_r_arg
 
-
-def create_r_func(func, module):
+def create_r_func(func, module, skip):
     func_name = func.__name__
     if 'tools' in module.__name__:
         module_name = 'tools'
@@ -28,9 +31,9 @@ def create_r_func(func, module):
     func_execute = f'func_out <- pharmpy${module_name}${func_name}({pyfunc_arg_str})'
 
     if func_name.startswith('run_'):
-        r_func_body = _create_func_body_tool(func, func_execute)
+        r_func_body = _create_func_body_tool(func, func_execute, skip)
     else:
-        r_func_body = _create_func_body_modeling(func, func_execute)
+        r_func_body = _create_func_body_modeling(func, func_execute, skip)
 
     r_wrapper = [f'{func_def} {{', *r_func_body, '}']
 
@@ -59,17 +62,17 @@ def _get_args(params):
     return ', '.join(wrapper_args), ', '.join(pyfunc_args)
 
 
-def _create_func_body_modeling(func, func_execute):
+def _create_func_body_modeling(func, func_execute, skip):
     r_func_body = [
         'reticulate::py_clear_last_error()',
-        *_preprocess_input(func),
+        *_preprocess_input(func, skip),
         f'{func_execute}',
         *_create_func_return(func),
     ]
     return r_func_body
 
 
-def _create_func_body_tool(func, func_execute):
+def _create_func_body_tool(func, func_execute, skip):
     error_msg = [
         'err <- reticulate::py_last_error()',
         'if (is.null(err)) {',
@@ -100,7 +103,7 @@ def _create_func_body_tool(func, func_execute):
         'reticulate::py_clear_last_error()',
         'tryCatch(',
         '{',
-        *_preprocess_input(func),
+        *_preprocess_input(func, skip),
         f'{func_execute}',
         *r_results_transform,
         *_create_func_return(func),
@@ -119,7 +122,7 @@ def _create_func_body_tool(func, func_execute):
 
 # FIXME make more general (handle nested types), combine overlapping functionality with
 #  equivalent in docs_conversion.py::_translate_type_hints
-def _preprocess_input(func):
+def _preprocess_input(func, skip):
     type_hints = get_type_hints(func)
     r_preprocess = []
     for key, value in type_hints.items():
@@ -131,9 +134,9 @@ def _preprocess_input(func):
         else:
             mangled_key = key
         if value is Union or origin is Union:
-            r_conversion = _get_conversion_str(mangled_key, args, origin)
+            r_conversion = _get_conversion_str(mangled_key, args, origin, skip)
         else:
-            r_conversion = _get_conversion_str(mangled_key, value, origin)
+            r_conversion = _get_conversion_str(mangled_key, value, origin, skip)
 
         if r_conversion is None:
             continue
@@ -143,7 +146,7 @@ def _preprocess_input(func):
     return r_preprocess
 
 
-def _get_conversion_str(key, args, origin):
+def _get_conversion_str(key, args, origin, skip):
     if origin is Union:
         args_new = []
         for arg in args:
@@ -151,7 +154,7 @@ def _get_conversion_str(key, args, origin):
             if arg is type(None):
                 continue
             # Filter out arguments that are skipped
-            if arg in SKIP:
+            if skip_translation(arg, skip):
                 continue
             args_new.append(arg)
         args = tuple(args_new)
@@ -164,9 +167,9 @@ def _get_conversion_str(key, args, origin):
         return f'{key} <- convert_input({key}, "int")'
     elif origin in (list, Iterable, Sequence) or args == (List[str], str):
         return f'{key} <- convert_input({key}, "list")'
-    elif args is pd.Series:
+    elif is_pandas_series(args):
         return f'{key} <- convert_input({key}, "pd.Series")'
-    elif args is pd.DataFrame:
+    elif is_pandas_dataframe(args):
         return f'{key} <- convert_input({key}, "pd.DataFrame")'
     elif origin is Mapping:
         return f'{key} <- convert_input({key}, "Mapping")'

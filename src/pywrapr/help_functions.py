@@ -2,33 +2,40 @@ import re
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import pandas as pd
-import symengine
-import sympy
-
 TYPE_DICT = {
     str: 'str',
     int: 'numeric',
     float: 'numeric',
-    sympy.Float: 'numeric',
     bool: 'logical',
     list: 'array',
     None: 'NULL',
-    pd.DataFrame: 'data.frame',
-    pd.Series: 'array',
     Any: 'any',
+    Path: 'str',
 }
 
-SKIP = [
-    sympy.Expr,
-    sympy.Symbol,
-    sympy.Eq,
-    symengine.Basic,
-    np.random.Generator,
-    Path,
-    type(None),
-]
+
+def is_pandas_dataframe(obj):
+    return _is_pandas_obj(obj) and obj.__name__ == 'DataFrame'
+
+
+def is_pandas_series(obj):
+    return _is_pandas_obj(obj) and obj.__name__ == 'Series'
+
+
+def _is_pandas_obj(obj):
+    return getattr(obj, '__module__', '').startswith('pandas')
+
+
+def skip_translation(obj, packages_to_skip):
+    return _belongs_to_packages(obj, packages_to_skip) or obj is type(None)
+
+
+def belongs_to_package(obj, package_name):
+    return getattr(obj, '__module__', '').startswith(package_name)
+
+
+def _belongs_to_packages(obj, packages):
+    return any(belongs_to_package(obj, p) for p in packages)
 
 
 def py_to_r_arg(arg):
