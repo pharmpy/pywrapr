@@ -4,7 +4,7 @@ from pywrapr.docs_conversion import create_r_doc
 from pywrapr.func_conversion import create_r_func
 
 
-def create_module_functions(module, skip=None):
+def create_module_functions(module, skip=None, full_trace=False):
     funcs = inspect.getmembers(module, inspect.isfunction)
     func_str = ''
     module_name = getattr(module, '__name__')
@@ -17,7 +17,7 @@ def create_module_functions(module, skip=None):
             continue
         if not skip:
             skip = []
-        r_func = create_r_func(func, module, skip)
+        r_func = create_r_func(func, module, skip, full_trace)
         r_doc = create_r_doc(func, package_name, skip)
         func_str += f'{r_doc}\n{r_func}\n\n'
     return func_str

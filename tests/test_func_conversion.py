@@ -50,7 +50,10 @@ from pywrapr.func_conversion import create_r_func
     ],
 )
 def test_create_r_func(func, module, signature_expected, py_call_expected, conversions_expected):
-    r_func = create_r_func(func, module, skip=['sympy', 'symengine', 'numpy'])
+    full_trace = True if module == pharmpy.tools else False
+    r_func = create_r_func(
+        func, module, skip=['sympy', 'symengine', 'numpy'], full_trace=full_trace
+    )
     assert f'{func.__name__} <- {signature_expected}' in r_func.split('\n')[0]
     assert py_call_expected in r_func
     assert all(conv in r_func for conv in conversions_expected)

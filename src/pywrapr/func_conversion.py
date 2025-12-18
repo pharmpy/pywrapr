@@ -12,14 +12,9 @@ from pywrapr.help_functions import (
 )
 
 
-def create_r_func(func, module, skip):
+def create_r_func(func, module, skip, full_trace):
     func_name = func.__name__
-    if 'tools' in module.__name__:
-        module_name = 'tools'
-    elif 'modeling' in module.__name__:
-        module_name = 'modeling'
-    else:
-        raise ValueError(f'Module {module.__name__} not supported')
+    module_name = module.__name__.replace('.', '$')
 
     if not inspect.getdoc(func):
         raise ValueError(f'No documentation available for {func_name}')
@@ -28,12 +23,12 @@ def create_r_func(func, module, skip):
     wrapper_arg_str, pyfunc_arg_str = _get_args(params)
 
     func_def = f'{func_name} <- function({wrapper_arg_str})'
-    func_execute = f'func_out <- pharmpy${module_name}${func_name}({pyfunc_arg_str})'
+    func_execute = f'func_out <- {module_name}${func_name}({pyfunc_arg_str})'
 
-    if func_name.startswith('run_'):
-        r_func_body = _create_func_body_tool(func, func_execute, skip)
+    if full_trace:
+        r_func_body = _create_func_body_full_trace(func, func_execute, skip)
     else:
-        r_func_body = _create_func_body_modeling(func, func_execute, skip)
+        r_func_body = _create_func_body_no_trace(func, func_execute, skip)
 
     r_wrapper = [f'{func_def} {{', *r_func_body, '}']
 
@@ -62,7 +57,7 @@ def _get_args(params):
     return ', '.join(wrapper_args), ', '.join(pyfunc_args)
 
 
-def _create_func_body_modeling(func, func_execute, skip):
+def _create_func_body_no_trace(func, func_execute, skip):
     r_func_body = [
         'reticulate::py_clear_last_error()',
         *_preprocess_input(func, skip),
@@ -72,7 +67,7 @@ def _create_func_body_modeling(func, func_execute, skip):
     return r_func_body
 
 
-def _create_func_body_tool(func, func_execute, skip):
+def _create_func_body_full_trace(func, func_execute, skip):
     error_msg = [
         'err <- reticulate::py_last_error()',
         'if (is.null(err)) {',
