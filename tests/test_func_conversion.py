@@ -1,9 +1,11 @@
+import inspect
+
 import pharmpy.modeling
 import pytest
 from pharmpy.modeling import calculate_eta_shrinkage, set_estimation_step, set_initial_estimates
 from pharmpy.tools import run_iivsearch
 
-from pywrapr.func_conversion import create_r_func
+from pywrapr.func_conversion import create_func_call, create_func_signature, create_r_func
 
 
 @pytest.mark.parametrize(
@@ -13,7 +15,7 @@ from pywrapr.func_conversion import create_r_func
             set_initial_estimates,
             pharmpy.modeling,
             'function(model, inits, move_est_close_to_bounds=FALSE, strict=TRUE)',
-            'pharmpy$modeling$set_initial_estimates(model, inits, move_est_close_to_bounds=move_est_close_to_bounds, '
+            'set_initial_estimates(model, inits, move_est_close_to_bounds=move_est_close_to_bounds, '
             'strict=strict)',
             ['convert_input(inits, "Mapping")'],
         ),
@@ -60,3 +62,67 @@ def test_create_r_func(func, module, signature_expected, py_call_expected, conve
     if func.__name__.startswith('run'):
         assert 'tryCatch' in r_func
         assert 'return(invisible())' in r_func
+
+
+@pytest.mark.parametrize(
+    'func, expected',
+    [
+        (
+            set_initial_estimates,
+            'function(model, inits, move_est_close_to_bounds=FALSE, strict=TRUE)',
+        ),
+        (
+            set_estimation_step,
+            'function(model, method, idx=0, ...)',
+        ),
+        (
+            calculate_eta_shrinkage,
+            'function(model, parameter_estimates, individual_estimates, sd=FALSE)',
+        ),
+        (
+            run_iivsearch,
+            'function(model, results, algorithm=\'top_down_exhaustive\', iiv_strategy=\'no_add\', rank_type=\'bic\', '
+            'linearize=FALSE, cutoff=NULL, keep=c(\'CL\'), strictness=\'minimization_successful or (rounding_errors '
+            'and sigdigs>=0.1)\', correlation_algorithm=NULL, E_p=NULL, E_q=NULL, parameter_uncertainty_method=NULL, '
+            '.search_space=NULL, .as_fullblock=FALSE, ...)',
+        ),
+    ],
+)
+def test_create_func_signature(func, expected):
+    params = inspect.signature(func).parameters
+    assert create_func_signature(func, params) == f'{func.__name__} <- {expected}'
+
+
+@pytest.mark.parametrize(
+    'func, module, expected',
+    [
+        (
+            set_initial_estimates,
+            pharmpy.modeling,
+            'set_initial_estimates(model, inits, move_est_close_to_bounds=move_est_close_to_bounds, '
+            'strict=strict)',
+        ),
+        (
+            set_estimation_step,
+            pharmpy.modeling,
+            'set_estimation_step(model, method, idx=idx, ...)',
+        ),
+        (
+            calculate_eta_shrinkage,
+            pharmpy.modeling,
+            'calculate_eta_shrinkage(model, parameter_estimates, individual_estimates, sd=sd)',
+        ),
+        (
+            run_iivsearch,
+            pharmpy.tools,
+            'run_iivsearch(model, results, algorithm=algorithm, iiv_strategy=iiv_strategy, rank_type=rank_type, '
+            'linearize=linearize, cutoff=cutoff, keep=keep, strictness=strictness, correlation_algorithm='
+            'correlation_algorithm, E_p=E_p, E_q=E_q, parameter_uncertainty_method=parameter_uncertainty_method, '
+            '`_search_space`=.search_space, `_as_fullblock`=.as_fullblock, ...)',
+        ),
+    ],
+)
+def test_create_func_call(func, module, expected):
+    params = inspect.signature(func).parameters
+    module_name_in_r = module.__name__.replace('.', '$')
+    assert create_func_call(func, module, params) == f'func_out <- {module_name_in_r}${expected}'

@@ -13,31 +13,37 @@ from pywrapr.help_functions import (
 
 
 def create_r_func(func, module, skip, full_trace):
-    func_name = func.__name__
-    module_name = module.__name__.replace('.', '$')
-
     if not inspect.getdoc(func):
-        raise ValueError(f'No documentation available for {func_name}')
+        raise ValueError(f'No documentation available for {func.__name__}')
 
     params = inspect.signature(func).parameters
-    wrapper_arg_str, pyfunc_arg_str = _get_args(params)
-
-    func_def = f'{func_name} <- function({wrapper_arg_str})'
-    func_execute = f'func_out <- {module_name}${func_name}({pyfunc_arg_str})'
+    signature = create_func_signature(func, params)
+    call = create_func_call(func, module, params)
 
     if full_trace:
-        r_func_body = _create_func_body_full_trace(func, func_execute, skip)
+        r_func_body = _create_func_body_full_trace(func, call, skip)
     else:
-        r_func_body = _create_func_body_no_trace(func, func_execute, skip)
+        r_func_body = _create_func_body_no_trace(func, call, skip)
 
-    r_wrapper = [f'{func_def} {{', *r_func_body, '}']
+    r_wrapper = [f'{signature} {{', *r_func_body, '}']
 
     r_wrapper_indented = _indent(r_wrapper)
     return '\n'.join(r_wrapper_indented)
 
 
-def _get_args(params):
-    wrapper_args, pyfunc_args = [], []
+def create_func_signature(func, params):
+    args = _get_args(params, as_signature=True)
+    return f'{func.__name__} <- function({args})'
+
+
+def create_func_call(func, module, params):
+    args = _get_args(params, as_signature=False)
+    module_name_in_r = module.__name__.replace('.', '$')
+    return f'func_out <- {module_name_in_r}${func.__name__}({args})'
+
+
+def _get_args(params, as_signature=True):
+    args = []
     for param in params.values():
         if param.name.startswith('_'):
             param_name_r = re.sub(r'^_', '.', param.name)
@@ -46,15 +52,16 @@ def _get_args(params):
             param_name_r, param_name_py = param.name, param.name
 
         if param.kind == param.VAR_KEYWORD or param.kind == param.VAR_POSITIONAL:
-            if '...' not in wrapper_args:
-                wrapper_args.append('...'), pyfunc_args.append('...')
+            if '...' not in args:
+                args.append('...')
         elif param.default is param.empty:
-            wrapper_args.append(f'{param_name_r}'), pyfunc_args.append(f'{param_name_r}')
+            args.append(f'{param_name_r}')
+        elif as_signature:
+            args.append(f'{param_name_r}={py_to_r_arg(param.default)}')
         else:
-            wrapper_args.append(f'{param_name_r}={py_to_r_arg(param.default)}')
-            pyfunc_args.append(f'{param_name_py}={param_name_r}')
+            args.append(f'{param_name_py}={param_name_r}')
 
-    return ', '.join(wrapper_args), ', '.join(pyfunc_args)
+    return ', '.join(args)
 
 
 def _create_func_body_no_trace(func, func_execute, skip):
