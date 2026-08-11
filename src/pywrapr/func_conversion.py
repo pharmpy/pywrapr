@@ -183,6 +183,7 @@ def _create_func_return(func):
     if _has_return_type_pd(inspect.getdoc(func)):
         r_reset_index = ['func_out <- reset_index_df(func_out)']
         func_return.extend(r_reset_index)
+    # This is to handle functions that returns NULL but should not print this, e.g. print_model_code()
     if inspect.signature(func).return_annotation != 'None':
         func_return += [
             'return(py_to_r(func_out))',
