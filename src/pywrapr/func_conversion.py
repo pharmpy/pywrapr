@@ -87,19 +87,11 @@ def _create_func_body_full_trace(func, func_execute, skip):
         '    message("pharmr version: ", packageVersion("pharmr"))',
         '    message("Pharmpy version: ", print_pharmpy_version())',
         '    message("Pharmpy has crashed!")',
-        '    message("This is caused by a BUG! What you see above is NOT AN INTENTIONAL error message. Please report it at https://github.com/pharmpy/pharmpy/issues. Thanks!")',
+        '    message("This is caused by a BUG! What you see above is NOT AN INTENTIONAL error '
+        'message. Please report it at https://github.com/pharmpy/pharmpy/issues. Thanks!")',
         '}',
         'return(invisible())',
     ]
-
-    if func.__name__ not in ['fit', 'read_modelfit_results']:
-        r_results_transform = [
-            'if (\'pharmpy.workflows.results.Results\' %in% class(func_out)) {',
-            'func_out <- reset_indices_results(func_out)',
-            '}',
-        ]
-    else:
-        r_results_transform = []
 
     r_func_body = [
         'reticulate::py_clear_last_error()',
@@ -107,7 +99,6 @@ def _create_func_body_full_trace(func, func_execute, skip):
         '{',
         *_preprocess_input(func, skip),
         f'{func_execute}',
-        *r_results_transform,
         *_create_func_return(func),
         '},',
         'error=function(cond) {',
@@ -181,12 +172,12 @@ def _get_conversion_str(key, args, origin, skip):
 def _create_func_return(func):
     func_return = []
     if _has_return_type_pd(inspect.getdoc(func)):
-        r_reset_index = ['func_out <- reset_index_df(func_out)']
+        r_reset_index = ['func_out <- convert_output(func_out)']
         func_return.extend(r_reset_index)
     # This is to handle functions that returns NULL but should not print this, e.g. print_model_code()
     if inspect.signature(func).return_annotation != 'None':
         func_return += [
-            'return(py_to_r(func_out))',
+            'return(reticulate::py_to_r(func_out))',
         ]
     return func_return
 
