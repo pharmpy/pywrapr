@@ -39,15 +39,17 @@ from pywrapr.func_conversion import create_func_call, create_func_signature, cre
         (
             run_iivsearch,
             pharmpy.tools,
-            'function(model, results, algorithm=\'top_down_exhaustive\', iiv_strategy=\'no_add\', rank_type=\'bic\', '
-            'linearize=FALSE, cutoff=NULL, keep=c(\'CL\'), strictness=\'minimization_successful or (rounding_errors '
-            'and sigdigs>=0.1)\', correlation_algorithm=NULL, E_p=NULL, E_q=NULL, parameter_uncertainty_method=NULL, '
-            '.search_space=NULL, .as_fullblock=FALSE, ...)',
-            'run_iivsearch(model, results, algorithm=algorithm, iiv_strategy=iiv_strategy, rank_type=rank_type, '
-            'linearize=linearize, cutoff=cutoff, keep=keep, strictness=strictness, correlation_algorithm='
-            'correlation_algorithm, E_p=E_p, E_q=E_q, parameter_uncertainty_method=parameter_uncertainty_method, '
-            '`_search_space`=.search_space, `_as_fullblock`=.as_fullblock, ...)',
-            ['convert_input(keep, "list")'],
+            "function(model, results, algorithm='top_down_exhaustive', "
+            "search_space='IIV?(@IIV,EXP);COVARIANCE?(IIV,@IIV)', "
+            "as_fullblock=FALSE, rank_type='bic', linearize=FALSE, cutoff=NULL, "
+            "strictness='minimization_successful or (rounding_errors and sigdigs>=0.1)', "
+            "correlation_algorithm=NULL, E_p=NULL, E_q=NULL, "
+            "parameter_uncertainty_method=NULL, ...)",
+            'run_iivsearch(model, results, algorithm=algorithm, search_space=search_space, '
+            'as_fullblock=as_fullblock, rank_type=rank_type, linearize=linearize, cutoff=cutoff, '
+            'strictness=strictness, correlation_algorithm=correlation_algorithm, E_p=E_p, '
+            'E_q=E_q, parameter_uncertainty_method=parameter_uncertainty_method, ...)',
+            [],
         ),
     ],
 )
