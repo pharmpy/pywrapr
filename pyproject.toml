@@ -45,6 +45,7 @@ include-package-data = true
 [tool.black]
 line-length = 100
 skip-string-normalization = 1
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"
