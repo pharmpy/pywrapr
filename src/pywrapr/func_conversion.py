@@ -177,7 +177,7 @@ def _create_func_return(func):
     # This is to handle functions that returns NULL but should not print this, e.g. print_model_code()
     if inspect.signature(func).return_annotation != 'None':
         func_return += [
-            'return(reticulate::py_to_r(func_out))',
+            'return(func_out)',
         ]
     return func_return
 
