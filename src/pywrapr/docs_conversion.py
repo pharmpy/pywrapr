@@ -229,7 +229,7 @@ def translate_python_row(row):
     if dict_py:
         # Substitute {} to list(), e.g. {'EONLY': 1} -> list('EONLY'=1)
         dict_r = f'list({dict_py.group(1).replace(": ", "=", )})'
-        dict_r = re.sub(r"(\d+)=", r'"\1"=', dict_r)    # Make integer keys into strings
+        dict_r = re.sub(r"(\d+)=", r'"\1"=', dict_r)  # Make integer keys into strings
         row_r = row_r.replace('{' + f'{dict_py.group(1)}' + '}', dict_r)
 
     # Replace len() with length()
