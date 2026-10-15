@@ -2,6 +2,7 @@ import inspect
 import re
 import textwrap
 from collections.abc import Iterable, Mapping, Sequence
+from types import UnionType
 from typing import List, Union, get_args, get_origin, get_type_hints
 
 from pywrapr.help_functions import (
@@ -126,21 +127,19 @@ def _preprocess_input(func, skip):
             mangled_key = '.' + key[1:]
         else:
             mangled_key = key
-        if value is Union or origin is Union:
+        if value in (Union, UnionType) or origin in (Union, UnionType):
             r_conversion = _get_conversion_str(mangled_key, args, origin, skip)
         else:
             r_conversion = _get_conversion_str(mangled_key, value, origin, skip)
 
-        if r_conversion is None:
-            continue
-
-        r_preprocess.append(r_conversion)
+        if r_conversion is not None:
+            r_preprocess.append(r_conversion)
 
     return r_preprocess
 
 
 def _get_conversion_str(key, args, origin, skip):
-    if origin is Union:
+    if origin is Union or origin is UnionType:
         args_new = []
         for arg in args:
             # Filter out None type (no conversion necessary)
@@ -156,6 +155,7 @@ def _get_conversion_str(key, args, origin, skip):
         if len(args) == 1:
             args = args[0]
             origin = get_origin(args)
+    print("QQ", key, origin, args)
     if args is int or isinstance(args, tuple) and int in args and float not in args:
         return f'{key} <- convert_input({key}, "int")'
     elif origin in (list, Iterable, Sequence) or args == (List[str], str):
@@ -165,7 +165,11 @@ def _get_conversion_str(key, args, origin, skip):
     elif is_pandas_dataframe(args):
         return f'{key} <- convert_input({key}, "pd.DataFrame")'
     elif origin is Mapping:
-        return f'{key} <- convert_input({key}, "Mapping")'
+        args = get_args(args)
+        if args[0] is int:
+            return f'{key} <- convert_input({key}, "Mapping[int]")'
+        else:
+            return f'{key} <- convert_input({key}, "Mapping")'
     return None
 
 

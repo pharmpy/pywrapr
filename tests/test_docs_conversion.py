@@ -63,7 +63,7 @@ from pywrapr.docs_conversion import create_r_doc
                 'as_fullblock (logical)',
                 'rank_type (str)',
                 'linearize (logical)',
-                'cutoff (numeric (optional))',
+                'cutoff (numeric or numeric (optional))',
                 'strictness (str)',
                 'correlation_algorithm (str (optional))',
                 'E_p (numeric or str (optional))',

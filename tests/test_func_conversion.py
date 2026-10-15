@@ -3,7 +3,7 @@ import inspect
 import pharmpy.modeling
 import pytest
 from pharmpy.modeling import calculate_eta_shrinkage, set_estimation_step, set_initial_estimates
-from pharmpy.tools import run_iivsearch
+from pharmpy.tools import run_amd, run_iivsearch
 
 from pywrapr.func_conversion import create_func_call, create_func_signature, create_r_func
 
@@ -51,6 +51,16 @@ from pywrapr.func_conversion import create_func_call, create_func_signature, cre
             'E_q=E_q, parameter_uncertainty_method=parameter_uncertainty_method, ...)',
             [],
         ),
+        (
+            run_amd,
+            pharmpy.tools,
+            "",
+            "",
+            ['convert_input(initial_error_models, "Mapping[int]")',
+             'mechanistic_covariates <- convert_input(mechanistic_covariates, "list")',
+             'units <- convert_input(units, "Mapping")',
+            ]
+        ),
     ],
 )
 def test_create_r_func(func, module, signature_expected, py_call_expected, conversions_expected):
@@ -58,6 +68,7 @@ def test_create_r_func(func, module, signature_expected, py_call_expected, conve
     r_func = create_r_func(
         func, module, skip=['sympy', 'symengine', 'numpy'], full_trace=full_trace
     )
+    print(r_func)
     assert f'{func.__name__} <- {signature_expected}' in r_func.split('\n')[0]
     assert py_call_expected in r_func
     assert all(conv in r_func for conv in conversions_expected)
