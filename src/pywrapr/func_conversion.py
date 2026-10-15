@@ -155,7 +155,6 @@ def _get_conversion_str(key, args, origin, skip):
         if len(args) == 1:
             args = args[0]
             origin = get_origin(args)
-    print("QQ", key, origin, args)
     if args is int or isinstance(args, tuple) and int in args and float not in args:
         return f'{key} <- convert_input({key}, "int")'
     elif origin in (list, Iterable, Sequence) or args == (List[str], str):
