@@ -1,3 +1,5 @@
+[![REUSE status](https://img.shields.io/badge/REUSE-compliant-green.svg)](https://reuse.software)
+
 # pywrapr
 A Python package to:
 
