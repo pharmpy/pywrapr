@@ -2,87 +2,282 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-import pytest
-from pharmpy.modeling import calculate_eta_shrinkage, set_estimation_step, set_initial_estimates
-from pharmpy.tools import run_iivsearch
+from __future__ import annotations
+
+from typing import Any, Mapping
 
 from pywrapr.docs_conversion import create_r_doc
 
 
-@pytest.mark.parametrize(
-    'func, params_expected, return_expected, example_expected',
-    [
-        (
-            set_initial_estimates,
-            [
-                'model (Model)',
-                'inits (list(str=numeric))',
-                'move_est_close_to_bounds (logical)',
-                'strict (logical)',
-            ],
-            'Model',
-            [
-                'set_initial_estimates(model, results$parameter_estimates)',
-                'set_initial_estimates(model, list(\'POP_CL\'=2.0))',
-                'model$parameters[\'POP_CL\']',
-            ],
-        ),
-        (
-            set_estimation_step,
-            [
-                'model (Model)',
-                'method (str)',
-                'idx (numeric)',
-                '...',
-            ],
-            'Model',
-            [
-                'opts <- list(\'NITER\'=1000, \'ISAMPLE\'=100)',
-                'model <- set_estimation_step(model, \'IMP\', evaluation=TRUE, tool_options=opts)',
-                'model$execution_steps[1]',
-            ],
-        ),
-        (
-            calculate_eta_shrinkage,
-            [
-                'model (Model)',
-                'parameter_estimates (array)',
-                'individual_estimates (data.frame)',
-                'sd (logical)',
-            ],
-            'Series',  # FIXME: this should be array
-            [
-                'pe <- results$parameter_estimates',
-                'ie <- results$individual_estimates',
-                'calculate_eta_shrinkage(model, pe, ie, sd=TRUE)',
-            ],
-        ),
-        (
-            run_iivsearch,
-            [
-                'model (Model)',
-                'results (ModelfitResults)',
-                'algorithm (str)',
-                'search_space (str)',
-                'as_fullblock (logical)',
-                'rank_type (str)',
-                'linearize (logical)',
-                'cutoff (numeric or numeric (optional))',
-                'strictness (str)',
-                'correlation_algorithm (str (optional))',
-                'E_p (numeric or str (optional))',
-                'E_q (numeric or str (optional))',
-                'parameter_uncertainty_method (str (optional))',
-                '...',
-            ],
-            'IIVSearchResults',
-            ["run_iivsearch(model=model, results=results, algorithm='top_down_exhaustive')"],
-        ),
-    ],
-)
-def test_create_r_doc(func, params_expected, return_expected, example_expected):
-    r_doc = create_r_doc(func, package_name='pharmpy', skip=[])
-    assert all(s.startswith('#\'') for s in r_doc.split('\n'))
-    assert all(f'@param {param}' in r_doc for param in params_expected)
-    assert f'@return ({return_expected})' in r_doc
-    assert all(example in r_doc for example in example_expected)
+def test_create_r_func_strings():
+    def func(a: str, b: str | None = None):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        a : str
+            first string
+        b : str or None
+            second string
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param a (str) first string' in r_doc
+    assert '@param b (str (optional)) second string' in r_doc
+
+
+def test_create_r_doc_numeric():
+    def func(x: int, y: float):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        x : int
+            first number
+        y : float
+            second number
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param x (numeric) first number' in r_doc
+    assert '@param y (numeric) second number' in r_doc
+
+
+def test_create_r_doc_optional_numeric():
+    def func(x: int | None = None, y: float | None = 1.0):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        x : int or None
+            first number
+        y : float or None
+            second number
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param x (numeric (optional)) first number' in r_doc
+    assert '@param y (numeric (optional)) second number' in r_doc
+
+
+def test_create_r_doc_bool():
+    def func(flag: bool = True, verbose: bool | None = None):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        flag : bool
+            a flag
+        verbose : bool or None
+            whether verbose
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param flag (logical) a flag' in r_doc
+    assert '@param verbose (logical (optional)) whether verbose' in r_doc
+
+
+def test_create_r_doc_lists():
+    def func(numbers: list[int], values: list[str | float], optional: list[int] | None = None):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        numbers : list[int]
+            first list
+        values : list[str | float]
+            second list
+        optional : list[int] | None
+            third list
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param numbers (array(numeric)) first vector' in r_doc
+    assert '@param values (array(str or numeric)) second vector' in r_doc
+    assert '@param optional (array(numeric) (optional)) third vector' in r_doc
+
+
+def test_create_r_doc_tuple():
+    def func(values: tuple[int, ...]):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        values : tuple[int, ...]
+            a tuple
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param values (list(numeric,)) a tuple' in r_doc
+
+
+def test_create_r_doc_mappings():
+    def func(
+        dict1: Mapping[Any, Any], dict2: Mapping[str, int], dict3: Mapping[int, float] | None = None
+    ):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        dict1 : dict
+            first dict
+        dict2 : dict
+            second dict
+        dict3 : dict
+            third dict
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param dict1 (list(any=any)) first list' in r_doc
+    assert '@param dict2 (list(str=numeric)) second list' in r_doc
+    assert '@param dict3 (list(numeric=numeric) (optional)) third list' in r_doc
+
+
+def test_create_r_doc_mappings_complex():
+    def func(dict1: Mapping[int, list[int]], dict2: Mapping[int, str | float]):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        dict1 : dict
+            first dict
+        dict2 : dict
+            second dict
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param dict1 (list(numeric=array(numeric))) first list' in r_doc
+    assert '@param dict2 (list(numeric=str or numeric)) second list' in r_doc
+
+
+def test_create_r_doc_pandas(mock_pandas):
+    def func(series: pd.Series, df: pd.DataFrame):  # noqa: F821
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        series : pd.Series
+            a series
+        df : pd.DataFrame
+            a data frame
+        """
+        pass
+
+    func.__globals__['pd'] = mock_pandas
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param series (array) a series' in r_doc
+    assert '@param df (data.frame) a data frame' in r_doc
+
+
+def test_create_r_doc_args():
+    def func(required: str, *args):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        required : str
+            a string
+        args
+            some args
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param required (str) a string' in r_doc
+    assert '@param ... some args' in r_doc
+
+
+def test_create_r_doc_kwargs():
+    def func(required: str, **kwargs):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        required : str
+            a string
+        kwargs
+            some keyword args
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
+    assert '@param required (str) a string' in r_doc
+    assert '@param ... some keyword args' in r_doc
+
+
+def test_create_r_func_example():
+    def func(a: str):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        a : str
+            a string
+
+        Examples
+        --------
+        >>> func(a)
+        """
+        pass
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(
+        f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export', 'example']
+    )
+    assert '@param a (str) a string' in r_doc
+    assert '#\' \\dontrun{\n#\' func(a)\n#\' }' in r_doc
+
+
+def test_create_r_func_return():
+    def func(a: str):
+        """Dummy docstring.
+
+        Parameters
+        ----------
+        a : str
+            a string
+
+        Returns
+        -------
+            str
+        """
+        return a
+
+    r_doc = create_r_doc(func, package_name='', skip=[])
+    assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
+    assert all(
+        f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export', 'return']
+    )
+    assert '@param a (str) a string' in r_doc
+    assert '@return (str)' in r_doc

@@ -13,6 +13,10 @@ from pywrapr.docs_conversion import translate_python_row
         ("a = 1", "a <- 1"),
         ("{x: 1, y: 2}", "list(x=1, y=2)"),
         ("{1: 'string', 2: 'other'}", 'list("1"=\'string\', "2"=\'other\')'),
+        ("func(obj, obj.attr)", "func(obj, obj$attr)"),
+        ("func(obj, {'a': 1})", "func(obj, list('a'=1))"),
+        ("obj.attr['a']", "obj$attr['a']"),
+        ("func(opt=True)", "func(opt=TRUE)"),
     ],
 )
 def test_code_translation(python_code, r_code):
