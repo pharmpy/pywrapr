@@ -18,9 +18,6 @@ from pywrapr.help_functions import (
 
 
 def create_r_func(func, module, skip, full_trace):
-    if not inspect.getdoc(func):
-        raise ValueError(f'No documentation available for {func.__name__}')
-
     params = inspect.signature(func).parameters
     signature = create_func_signature(func, params)
     call = create_func_call(func, module, params)

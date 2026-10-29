@@ -21,6 +21,8 @@ def create_module_functions(module, skip=None, full_trace=False):
             continue
         if not skip:
             skip = []
+        if not inspect.getdoc(func):
+            raise ValueError(f'No documentation available for {func.__name__}')
         r_func = create_r_func(func, module, skip, full_trace)
         r_doc = create_r_doc(func, package_name, skip)
         func_str += f'{r_doc}\n{r_func}\n\n'
