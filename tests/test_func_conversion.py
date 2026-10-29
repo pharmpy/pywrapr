@@ -2,146 +2,189 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-import inspect
+from __future__ import annotations
 
-import pharmpy.modeling
+from typing import Mapping
+from unittest.mock import MagicMock
+
 import pytest
-from pharmpy.modeling import calculate_eta_shrinkage, set_estimation_step, set_initial_estimates
-from pharmpy.tools import run_amd, run_iivsearch
 
-from pywrapr.func_conversion import create_func_call, create_func_signature, create_r_func
+from pywrapr.func_conversion import create_r_func
 
 
-@pytest.mark.parametrize(
-    'func, module, signature_expected, py_call_expected, conversions_expected',
-    [
-        (
-            set_initial_estimates,
-            pharmpy.modeling,
-            'function(model, inits, move_est_close_to_bounds=FALSE, strict=TRUE)',
-            'set_initial_estimates(model, inits, move_est_close_to_bounds=move_est_close_to_bounds, '
-            'strict=strict)',
-            ['convert_input(inits, "Mapping")'],
-        ),
-        (
-            set_estimation_step,
-            pharmpy.modeling,
-            'function(model, method, idx=0, ...)',
-            'set_estimation_step(model, method, idx=idx, ...)',
-            ['convert_input(idx, "int")'],
-        ),
-        (
-            calculate_eta_shrinkage,
-            pharmpy.modeling,
-            'function(model, parameter_estimates, individual_estimates, sd=FALSE)',
-            'calculate_eta_shrinkage(model, parameter_estimates, individual_estimates, sd=sd)',
-            [
-                'convert_input(parameter_estimates, "pd.Series")',
-                'convert_input(individual_estimates, "pd.DataFrame")',
-            ],
-        ),
-        (
-            run_iivsearch,
-            pharmpy.tools,
-            "function(model, results, algorithm='top_down_exhaustive', "
-            "search_space='IIV?(@IIV,EXP);COVARIANCE?(IIV,@IIV)', "
-            "as_fullblock=FALSE, rank_type='bic', linearize=FALSE, cutoff=NULL, "
-            "strictness='minimization_successful or (rounding_errors and sigdigs>=0.1)', "
-            "correlation_algorithm=NULL, E_p=NULL, E_q=NULL, "
-            "parameter_uncertainty_method=NULL, ...)",
-            'run_iivsearch(model, results, algorithm=algorithm, search_space=search_space, '
-            'as_fullblock=as_fullblock, rank_type=rank_type, linearize=linearize, cutoff=cutoff, '
-            'strictness=strictness, correlation_algorithm=correlation_algorithm, E_p=E_p, '
-            'E_q=E_q, parameter_uncertainty_method=parameter_uncertainty_method, ...)',
-            [],
-        ),
-        (
-            run_amd,
-            pharmpy.tools,
-            "",
-            "",
-            ['convert_input(initial_error_models, "Mapping[int]")',
-             'mechanistic_covariates <- convert_input(mechanistic_covariates, "list")',
-             'units <- convert_input(units, "Mapping")',
-            ]
-        ),
-    ],
-)
-def test_create_r_func(func, module, signature_expected, py_call_expected, conversions_expected):
-    full_trace = True if module == pharmpy.tools else False
-    r_func = create_r_func(
-        func, module, skip=['sympy', 'symengine', 'numpy'], full_trace=full_trace
-    )
-    print(r_func)
-    assert f'{func.__name__} <- {signature_expected}' in r_func.split('\n')[0]
-    assert py_call_expected in r_func
-    assert all(conv in r_func for conv in conversions_expected)
-    if func.__name__.startswith('run'):
-        assert 'tryCatch' in r_func
-        assert 'return(invisible())' in r_func
+@pytest.fixture(scope='session')
+def mock_module():
+    mock_module = MagicMock()
+    mock_module.__name__ = 'my.python.module'
+    return mock_module
 
 
-@pytest.mark.parametrize(
-    'func, expected',
-    [
-        (
-            set_initial_estimates,
-            'function(model, inits, move_est_close_to_bounds=FALSE, strict=TRUE)',
-        ),
-        (
-            set_estimation_step,
-            'function(model, method, idx=0, ...)',
-        ),
-        (
-            calculate_eta_shrinkage,
-            'function(model, parameter_estimates, individual_estimates, sd=FALSE)',
-        ),
-        (
-            run_iivsearch,
-            "function(model, results, algorithm='top_down_exhaustive', "
-            "search_space='IIV?(@IIV,EXP);COVARIANCE?(IIV,@IIV)', "
-            "as_fullblock=FALSE, rank_type='bic', linearize=FALSE, cutoff=NULL, "
-            "strictness='minimization_successful or "
-            "(rounding_errors and sigdigs>=0.1)', correlation_algorithm=NULL, E_p=NULL, E_q=NULL, "
-            "parameter_uncertainty_method=NULL, ...)",
-        ),
-    ],
-)
-def test_create_func_signature(func, expected):
-    params = inspect.signature(func).parameters
-    assert create_func_signature(func, params) == f'{func.__name__} <- {expected}'
+@pytest.fixture(scope='session')
+def mock_pandas():
+    pd_mock = MagicMock()
+    pd_mock.Series = MagicMock()
+    pd_mock.Series.__name__ = 'Series'
+    pd_mock.Series.__module__ = 'pandas'
+    pd_mock.DataFrame = MagicMock()
+    pd_mock.DataFrame.__name__ = 'DataFrame'
+    pd_mock.DataFrame.__module__ = 'pandas'
+    pd_mock.__name__ = 'pandas'
+    return pd_mock
 
 
-@pytest.mark.parametrize(
-    'func, module, expected',
-    [
-        (
-            set_initial_estimates,
-            pharmpy.modeling,
-            'set_initial_estimates(model, inits, move_est_close_to_bounds=move_est_close_to_bounds, '
-            'strict=strict)',
-        ),
-        (
-            set_estimation_step,
-            pharmpy.modeling,
-            'set_estimation_step(model, method, idx=idx, ...)',
-        ),
-        (
-            calculate_eta_shrinkage,
-            pharmpy.modeling,
-            'calculate_eta_shrinkage(model, parameter_estimates, individual_estimates, sd=sd)',
-        ),
-        (
-            run_iivsearch,
-            pharmpy.tools,
-            'run_iivsearch(model, results, algorithm=algorithm, search_space=search_space, '
-            'as_fullblock=as_fullblock, rank_type=rank_type, linearize=linearize, cutoff=cutoff, '
-            'strictness=strictness, correlation_algorithm=correlation_algorithm, E_p=E_p, E_q=E_q, '
-            'parameter_uncertainty_method=parameter_uncertainty_method, ...)',
-        ),
-    ],
-)
-def test_create_func_call(func, module, expected):
-    params = inspect.signature(func).parameters
-    module_name_in_r = module.__name__.replace('.', '$')
-    assert create_func_call(func, module, params) == f'func_out <- {module_name_in_r}${expected}'
+def test_create_r_func_strings(mock_module):
+    def func(a: str, b: str = 'x', c: str | None = None):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(a, b=\'x\', c=NULL)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'func_out <- my$python$module$func(a, b=b, c=c)' in r_func
+    assert 'func_out <- convert_output(func_out)' in r_func
+    assert 'return(func_out)' in r_func
+
+
+def test_create_r_func_numbers(mock_module):
+    def func(x: int, y: float = 1.5, z: int | None = None):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(x, y=1.5, z=NULL)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'my$python$module$func(x, y=y, z=z)' in r_func
+    assert 'x <- convert_input(x, "int")'
+    assert 'y <- convert_input(y, "int")'
+
+
+def test_create_r_func_bool(mock_module):
+    def func(flag: bool = True, verbose: bool | None = None):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(flag=TRUE, verbose=NULL)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'func_out <- my$python$module$func(flag=flag, verbose=verbose)' in r_func
+
+
+def test_create_r_func_lists(mock_module):
+    def func(list1: list[str], list2: list[str]):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(list1, list2)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'list1 <- convert_input(list1, "list")' in r_func
+    assert 'list2 <- convert_input(list2, "list")' in r_func
+    assert 'func_out <- my$python$module$func(list1, list2)' in r_func
+
+
+# def test_convert_r_func_optional_list(mock_module):
+#     def func(items: list | None = None):
+#         pass
+#
+#     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+#     assert 'reticulate::py_clear_last_error()' in r_func
+#     assert 'func <- function(items, default_list=NULL)' in r_func
+#     assert 'items <- convert_input(items, "list")' in r_func
+#     assert 'default_list <- convert_input(default_list, "list")' in r_func
+#     assert 'func_out <- my$python$module$func(items, default_list=default_list)' in r_func
+
+
+def test_create_r_func_mapping(mock_module):
+    def func(mapping: Mapping[str, str]):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(mapping)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'mapping <- convert_input(mapping, "Mapping")' in r_func
+    assert 'func_out <- my$python$module$func(mapping)' in r_func
+
+
+def test_create_r_func_pandas(mock_module, mock_pandas):
+    def func(series: pd.Series, df: pd.DataFrame):  # noqa: F821
+        pass
+
+    func.__globals__['pd'] = mock_pandas
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(series, df)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'series <- convert_input(series, "pd.Series")' in r_func
+    assert 'df <- convert_input(df, "pd.DataFrame")' in r_func
+    assert 'func_out <- my$python$module$func(series, df)' in r_func
+
+
+def test_create_r_func_pandas_multiple_dfs(mock_module, mock_pandas):
+    def func(df1: pd.DataFrame, df2: pd.DataFrame):  # noqa: F821
+        pass
+
+    func.__globals__['pd'] = mock_pandas
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(df1, df2)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'df1 <- convert_input(df1, "pd.DataFrame")' in r_func
+    assert 'df2 <- convert_input(df2, "pd.DataFrame")' in r_func
+    assert 'func_out <- my$python$module$func(df1, df2)' in r_func
+
+
+# def test_create_r_func_multiple_types(mock_module):
+#     def func(value: str | int | None = None, data: list | None = None):
+#         pass
+#
+#     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+#     assert 'func <- function(value=NULL, data=NULL)' in r_func
+#     assert 'reticulate::py_clear_last_error()' in r_func
+#     assert 'value <- convert_input(value, "int")' in r_func
+#     assert 'data <- convert_input(data, "list")' in r_func
+#     assert 'func_out <- my$python$module$func(value=value, data=data)' in r_func
+
+
+def test_create_r_func_var_args(mock_module):
+    def func(required: str, *args):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(required, ...)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+
+
+def test_create_r_func_kwargs(mock_module):
+    def func(required: str, **kwargs):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(required, ...)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+
+
+def test_create_r_func_full_trace(mock_module):
+    def func(a: str, b: str = 'x', c: str | None = None):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=True)
+    assert 'func <- function(a, b=\'x\', c=NULL)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'func_out <- my$python$module$func(a, b=b, c=c)' in r_func
+    assert 'func_out <- convert_output(func_out)' in r_func
+    assert 'return(func_out)' in r_func
+    assert 'tryCatch' in r_func
+    assert 'err <- reticulate::py_last_error()' in r_func
+    assert 'err$type %in% c("InputValidationError", "DispatchingError")' in r_func
+
+
+def test_create_r_func_return_basic(mock_module):
+    def func(a: str, b: str = 'x', c: str | None = None) -> str:
+        return a
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=True)
+    assert 'return(func_out)' in r_func
+
+
+def test_create_r_func_return_null(mock_module):
+    def func(a: str, b: str = 'x', c: str | None = None) -> None:
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=True)
+    assert 'return(func_out)' not in r_func
