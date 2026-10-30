@@ -6,6 +6,7 @@
 from typing import Mapping
 
 import pandas as pd
+import pytest
 
 from pywrapr.func_conversion import create_r_func
 
@@ -45,27 +46,30 @@ def test_create_r_func_bool(mock_module):
 
 
 def test_create_r_func_lists(mock_module):
-    def func(list1: list[str], list2: list[str]):
+    def func(list1: list[str], list2: list[str], list3: list[int] | None = None):
         pass
 
     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
-    assert 'func <- function(list1, list2)' in r_func
+    assert 'func <- function(list1, list2, list3=NULL)' in r_func
     assert 'reticulate::py_clear_last_error()' in r_func
     assert 'list1 <- convert_input(list1, "list")' in r_func
     assert 'list2 <- convert_input(list2, "list")' in r_func
-    assert 'func_out <- my$python$module$func(list1, list2)' in r_func
+    assert 'list3 <- convert_input(list3, "list")' in r_func
+    assert 'func_out <- my$python$module$func(list1, list2, list3=list3)' in r_func
 
 
-# def test_convert_r_func_optional_list(mock_module):
-#     def func(items: list | None = None):
-#         pass
-#
-#     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
-#     assert 'reticulate::py_clear_last_error()' in r_func
-#     assert 'func <- function(items, default_list=NULL)' in r_func
-#     assert 'items <- convert_input(items, "list")' in r_func
-#     assert 'default_list <- convert_input(default_list, "list")' in r_func
-#     assert 'func_out <- my$python$module$func(items, default_list=default_list)' in r_func
+def test_convert_r_func_optional_list(mock_module):
+    def func(items: list):
+        pass
+
+    with pytest.raises(ValueError, match='Parameter `items` has partial type hint'):
+        create_r_func(func, mock_module, skip=[], full_trace=False)
+
+    def func(items: list | None):
+        pass
+
+    with pytest.raises(ValueError, match='Parameter `items` has partial type hint'):
+        create_r_func(func, mock_module, skip=[], full_trace=False)
 
 
 def test_create_r_func_mapping(mock_module):
