@@ -178,7 +178,8 @@ def _create_func_return(func):
     r_reset_index = ['func_out <- convert_output(func_out)']
     func_return.extend(r_reset_index)
     # This is to handle functions that returns NULL but should not print this, e.g. print_model_code()
-    if inspect.signature(func).return_annotation != 'None':
+    # Convert to string to not be dependent on __future__.annotations being used
+    if str(inspect.signature(func).return_annotation) != 'None':
         func_return += [
             'return(func_out)',
         ]
