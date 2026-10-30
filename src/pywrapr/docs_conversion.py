@@ -114,6 +114,7 @@ def _convert_types_from_typehints(type_hints, package_name, skip):
     type_dict = {}
     for var_name, var_type in type_hints.items():
         try:
+            print(var_name)
             r_type = _translate_type_hints(var_type, package_name, skip)
         except ValueError:
             raise
@@ -145,7 +146,8 @@ def _translate_type_hints(var_type, package_name, skip):
             if not skip_translation(arg, skip)
         ]
         # If two args are translated to same type, for union only needs to be written once
-        if origin is Union:
+        # Python 3.13 uses UnionType while 3.14 uses Union
+        if origin is Union or origin is UnionType:
             args_trans = list(filter(None, dict.fromkeys(args_trans)))
         if not args_trans:
             return ''
