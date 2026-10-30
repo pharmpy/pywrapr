@@ -2,9 +2,10 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from __future__ import annotations
 
 from typing import Mapping
+
+import pandas as pd
 
 from pywrapr.func_conversion import create_r_func
 
@@ -78,11 +79,9 @@ def test_create_r_func_mapping(mock_module):
     assert 'func_out <- my$python$module$func(mapping)' in r_func
 
 
-def test_create_r_func_pandas(mock_module, mock_pandas):
-    def func(series: pd.Series, df: pd.DataFrame):  # noqa: F821
+def test_create_r_func_pandas(mock_module):
+    def func(series: pd.Series, df: pd.DataFrame):
         pass
-
-    func.__globals__['pd'] = mock_pandas
 
     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
     assert 'func <- function(series, df)' in r_func
@@ -92,11 +91,9 @@ def test_create_r_func_pandas(mock_module, mock_pandas):
     assert 'func_out <- my$python$module$func(series, df)' in r_func
 
 
-def test_create_r_func_pandas_multiple_dfs(mock_module, mock_pandas):
-    def func(df1: pd.DataFrame, df2: pd.DataFrame):  # noqa: F821
+def test_create_r_func_pandas_multiple_dfs(mock_module):
+    def func(df1: pd.DataFrame, df2: pd.DataFrame):
         pass
-
-    func.__globals__['pd'] = mock_pandas
 
     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
     assert 'func <- function(df1, df2)' in r_func
@@ -155,7 +152,7 @@ def test_create_r_func_return_basic(mock_module):
     def func(a: str, b: str = 'x', c: str | None = None) -> str:
         return a
 
-    r_func = create_r_func(func, mock_module, skip=[], full_trace=True)
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
     assert 'return(func_out)' in r_func
 
 
@@ -163,5 +160,5 @@ def test_create_r_func_return_null(mock_module):
     def func(a: str, b: str = 'x', c: str | None = None) -> None:
         pass
 
-    r_func = create_r_func(func, mock_module, skip=[], full_trace=True)
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
     assert 'return(func_out)' not in r_func

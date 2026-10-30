@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-from __future__ import annotations
-
 from typing import Any, Mapping
+
+import pandas as pd
 
 from pywrapr.docs_conversion import create_r_doc
 
@@ -174,8 +174,8 @@ def test_create_r_doc_mappings_complex():
     assert '@param dict2 (list(numeric=str or numeric)) second list' in r_doc
 
 
-def test_create_r_doc_pandas(mock_pandas):
-    def func(series: pd.Series, df: pd.DataFrame):  # noqa: F821
+def test_create_r_doc_pandas():
+    def func(series: pd.Series, df: pd.DataFrame):
         """Dummy docstring.
 
         Parameters
@@ -187,7 +187,6 @@ def test_create_r_doc_pandas(mock_pandas):
         """
         pass
 
-    func.__globals__['pd'] = mock_pandas
     r_doc = create_r_doc(func, package_name='', skip=[])
     assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
     assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
