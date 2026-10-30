@@ -175,15 +175,17 @@ def test_create_r_doc_mappings_complex():
 
 
 def test_create_r_doc_pandas():
-    def func(series: pd.Series, df: pd.DataFrame):
+    def func(series: pd.Series, df1: pd.DataFrame, df2: pd.DataFrame | None = None):
         """Dummy docstring.
 
         Parameters
         ----------
         series : pd.Series
             a series
-        df : pd.DataFrame
+        df1 : pd.DataFrame
             a data frame
+        df2 : pd.DataFrame
+            optional data frame
         """
         pass
 
@@ -191,7 +193,8 @@ def test_create_r_doc_pandas():
     assert all(row.startswith('#\' ') for row in r_doc.split('\n'))
     assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
     assert '@param series (array) a series' in r_doc
-    assert '@param df (data.frame) a data frame' in r_doc
+    assert '@param df1 (data.frame) a data frame' in r_doc
+    assert '@param df2 (data.frame (optional)) optional data frame' in r_doc
 
 
 def test_create_r_doc_args():
