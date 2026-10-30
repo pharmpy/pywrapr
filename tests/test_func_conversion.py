@@ -24,15 +24,16 @@ def test_create_r_func_strings(mock_module):
 
 
 def test_create_r_func_numbers(mock_module):
-    def func(x: int, y: float = 1.5, z: int | None = None):
+    def func(x: int, y: float = 1.5, z: float | int | None = None):
         pass
 
     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
     assert 'func <- function(x, y=1.5, z=NULL)' in r_func
     assert 'reticulate::py_clear_last_error()' in r_func
     assert 'my$python$module$func(x, y=y, z=z)' in r_func
-    assert 'x <- convert_input(x, "int")'
-    assert 'y <- convert_input(y, "int")'
+    assert 'x <- convert_input(x, "int")' in r_func
+    assert 'y <- convert_input(y, "int")' not in r_func
+    assert 'z <- convert_input(z, "int")' not in r_func
 
 
 def test_create_r_func_bool(mock_module):

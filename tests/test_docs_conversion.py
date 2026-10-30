@@ -30,7 +30,7 @@ def test_create_r_func_strings():
 
 
 def test_create_r_doc_numeric():
-    def func(x: int, y: float):
+    def func(x: int, y: float, z: float | int | None):
         """Dummy docstring.
 
         Parameters
@@ -39,6 +39,8 @@ def test_create_r_doc_numeric():
             first number
         y : float
             second number
+        z : int or float
+            third number
         """
         pass
 
@@ -47,6 +49,7 @@ def test_create_r_doc_numeric():
     assert all(f'@{header}' in r_doc for header in ['title', 'description', 'param', 'export'])
     assert '@param x (numeric) first number' in r_doc
     assert '@param y (numeric) second number' in r_doc
+    assert '@param z (numeric (optional)) third number' in r_doc
 
 
 def test_create_r_doc_optional_numeric():
