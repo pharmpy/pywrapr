@@ -107,16 +107,16 @@ def test_create_r_func_pandas_multiple_dfs(mock_module):
     assert 'func_out <- my$python$module$func(df1, df2)' in r_func
 
 
-# def test_create_r_func_multiple_types(mock_module):
-#     def func(value: str | int | None = None, data: list | None = None):
-#         pass
-#
-#     r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
-#     assert 'func <- function(value=NULL, data=NULL)' in r_func
-#     assert 'reticulate::py_clear_last_error()' in r_func
-#     assert 'value <- convert_input(value, "int")' in r_func
-#     assert 'data <- convert_input(data, "list")' in r_func
-#     assert 'func_out <- my$python$module$func(value=value, data=data)' in r_func
+def test_create_r_func_multiple_types(mock_module):
+    def func(value: str | int | None = None, data: list[str] | None = None):
+        pass
+
+    r_func = create_r_func(func, mock_module, skip=[], full_trace=False)
+    assert 'func <- function(value=NULL, data=NULL)' in r_func
+    assert 'reticulate::py_clear_last_error()' in r_func
+    assert 'value <- convert_input(value, "int")' in r_func
+    assert 'data <- convert_input(data, "list")' in r_func
+    assert 'func_out <- my$python$module$func(value=value, data=data)' in r_func
 
 
 def test_create_r_func_var_args(mock_module):
