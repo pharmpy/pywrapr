@@ -4,7 +4,6 @@
 
 import pandas as pd
 import pytest
-from pharmpy.model import Model
 
 from pywrapr.help_functions import (
     belongs_to_package,
@@ -20,7 +19,7 @@ from pywrapr.help_functions import (
         (pd.DataFrame, True),
         (pd.Series, False),
         (None, False),
-        (Model, False),
+        (int, False),
     ],
 )
 def test_create_is_pandas_dataframe(obj, expected):
@@ -33,7 +32,7 @@ def test_create_is_pandas_dataframe(obj, expected):
         (pd.DataFrame, False),
         (pd.Series, True),
         (None, False),
-        (Model, False),
+        (int, False),
     ],
 )
 def test_create_pandas_series(obj, expected):
@@ -48,8 +47,8 @@ def test_create_pandas_series(obj, expected):
         (pd.DataFrame, 'pandas', True),
         (pd.DataFrame, 'sympy', False),
         (pd.DataFrame, '', False),
-        (Model, 'pharmpy', True),
-        (Model, 'pandas', False),
+        (int, 'pharmpy', False),
+        (int, 'pandas', False),
     ],
 )
 def test_belongs_to_package(obj, package_name, expected):
@@ -63,7 +62,7 @@ def test_belongs_to_package(obj, package_name, expected):
         (pd.DataFrame, [], False),
         (pd.DataFrame, ['pandas'], True),
         (pd.Series, ['pandas'], True),
-        (Model, ['pandas'], False),
+        (int, ['pandas'], False),
         (type(None), ['pandas'], True),
     ],
 )
