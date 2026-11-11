@@ -66,7 +66,7 @@ def py_to_r_arg(arg):
 
 
 def py_to_r_str(arg, example=False):
-    args = {r'``None``: 'NULL', 'None': 'NULL', 'True': 'TRUE', 'False': 'FALSE'}
+    args = {r'``None``': 'NULL', 'None': 'NULL', 'True': 'TRUE', 'False': 'FALSE'}
 
     types = {
         r'\bint\b': 'integer',
