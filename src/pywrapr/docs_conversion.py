@@ -114,7 +114,6 @@ def _convert_types_from_typehints(type_hints, package_name, skip):
     type_dict = {}
     for var_name, var_type in type_hints.items():
         try:
-            print(var_name)
             r_type = _translate_type_hints(var_type, package_name, skip)
         except ValueError:
             raise
